@@ -53,15 +53,12 @@ class TimeStep(NamedTuple):
     observation: Observation
     extras: dict
 
-    @cached_property
     def is_first(self):
         return self.step_type == StepType.FIRST
 
-    @cached_property
     def is_mid(self):
         return self.step_type == StepType.MID
 
-    @cached_property
     def is_last(self):
         return self.step_type == StepType.LAST
 
