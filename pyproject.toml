@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["TristanBester <tristanbester@gmail.com>"]
 readme = "README.md"
-packages = [{include = "mjx_gym"}]
+packages = [{ include = "mjxgym" }]
 
 [tool.poetry.dependencies]
 python = ">=3.11, <3.12"
