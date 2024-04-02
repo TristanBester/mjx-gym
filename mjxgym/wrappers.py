@@ -78,7 +78,7 @@ class AutoResetWrapper(Wrapper):
 
     def step(self, state, action):
         state, timestep = self._env.step(state, action)
-        timestep = timestep._replace(step_type=StepType.LAST)
+        # timestep = timestep._replace(step_type=StepType.LAST)
 
         state, timestep = jax.lax.cond(
             timestep.is_last(),
@@ -90,6 +90,8 @@ class AutoResetWrapper(Wrapper):
         return state, timestep
 
     def _auto_reset(self, state, timestep):
+        print("auto resetting...")
+
         _, subkey = jax.random.split(state.key)
         state, reset_timestep = self._env.reset(subkey)
 

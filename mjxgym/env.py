@@ -1,15 +1,20 @@
+import time
+
 import chex
 import jax
 import jax.numpy as jnp
 
 from mjxgym.constants import MOVES
 from mjxgym.generator import GridWorldGenerator
-from mjxgym.type import Observation, State, restart, termination, transition
+from mjxgym.type import Observation, State, StepType, restart, termination, transition
+
+# Fix typing and small helper functions present in original code
 
 
 class GridWorld:
     def __init__(self) -> None:
         self.generator = GridWorldGenerator()
+        self.max_steps = 1000
 
     def reset(self, key):
         key, subkey = jax.random.split(key)
@@ -20,7 +25,6 @@ class GridWorld:
 
     def step(self, state: State, action: chex.Array):
         next_agent_pos = self._move_agent(state.grid, state.agent_pos, action)
-        done = jnp.array_equal(next_agent_pos, jnp.array([4, 4]))
         next_state = State(
             key=state.key,
             step_count=state.step_count + 1,
@@ -28,8 +32,12 @@ class GridWorld:
             agent_pos=next_agent_pos,
         )
         next_obs = Observation(agent_pos=next_agent_pos)
+
+        solved = jnp.array_equal(next_agent_pos, jnp.array([4, 4]))
+        done = solved | (next_state.step_count >= self.max_steps)
+
         reward = jax.lax.cond(
-            done,
+            solved,
             lambda: jnp.array(1.0),
             lambda: jnp.array(0.0),
         )
@@ -57,25 +65,11 @@ class GridWorld:
         print()
 
 
-if __name__ == "__main__":
-    env = GridWorld()
-    key = jax.random.PRNGKey(0)
+# if __name__ == "__main__":
+#     env = AutoResetWrapper(GridWorld())
 
-    # jit_reset = jax.jit(env.reset)
-    # jit_step = jax.jit(env.step)
+#     key = jax.random.PRNGKey(0)
+#     state, timestep = env.reset(key)
+#     state, timestep = env.step(state, jnp.array(0))
 
-    jit_reset = jax.jit(env.reset, static_argnums=(0,))
-    jit_step = jax.jit(env.step, static_argnums=(0,))
-
-    vmap_reset = jax.vmap(jit_reset)
-    vmap_step = jax.vmap(jit_step)
-
-    keys = jax.random.split(key, 5)
-
-    states, timesteps = vmap_reset(keys)
-
-    print(states.agent_pos)
-
-    states, timesteps = vmap_step(states, jnp.array([0, 0, 0, 0, 0]))
-
-    print(states.agent_pos)
+#     print(state, timestep)
