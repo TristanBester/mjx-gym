@@ -10,13 +10,8 @@ from mjxgym.type import State
 class GridWorldGenerator:
     def __init__(self, grid_size=5) -> None:
         self.grid_size = grid_size
-
-    @cached_property
-    def grid(self):
-        """Grid is static, so we can cache it."""
-        grid = jnp.zeros((5, 5), dtype=jnp.int32)
-        grid = grid.at[tuple(WALLS)].set(1)
-        return grid
+        self.grid = jnp.zeros((5, 5), dtype=jnp.int32)
+        self.grid = self.grid.at[tuple(WALLS)].set(1)
 
     def __call__(self, key) -> State:
         def cond_fun(grid, agent_pos):

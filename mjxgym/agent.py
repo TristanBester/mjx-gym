@@ -68,6 +68,15 @@ if __name__ == "__main__":
     env = AutoResetWrapper(GridWorld())
     key = jax.random.PRNGKey(0)
 
+    jit_reset = jax.jit(env.reset)
+    jit_step = jax.jit(env.step)
+
+    state, timestep = jit_reset(key)
+    state, timestep = jit_step(state, jnp.array(0))
+
+    print(state)
+    print(timestep)
+
     # q_values = train_agent(key)
     # print(q_values.max())
 
@@ -118,59 +127,59 @@ if __name__ == "__main__":
     # keys = jax.random.split(key, 4)
     # f(keys)
 
-    keys = jnp.asarray(jax.random.split(key, 1000))
+    # keys = jnp.asarray(jax.random.split(key, 1000))
 
-    # print(keys)
-    # print(keys.reshape(2, -1, 2).shape)
-    # print(keys.reshape(2, -1, 2))
+    # # print(keys)
+    # # print(keys.reshape(2, -1, 2).shape)
+    # # print(keys.reshape(2, -1, 2))
 
-    # 2 devices, 5 keys per device, key shape is (2,)
-    key_batches = keys.reshape(8, -1, 2)
+    # # 2 devices, 5 keys per device, key shape is (2,)
+    # key_batches = keys.reshape(8, -1, 2)
 
-    key_batch = key_batches[0]
+    # key_batch = key_batches[0]
 
-    # print(key_batch)
+    # # print(key_batch)
 
-    vmap_train = jax.vmap(train_agent)
+    # vmap_train = jax.vmap(train_agent)
 
-    # q_values = vmap_train(key_batch)
+    # # q_values = vmap_train(key_batch)
+    # # print(q_values.shape)
+    # # print(jnp.max(q_values, axis=(1, 2, 3)))
+
+    # pmap_train = jax.pmap(vmap_train)
+
+    # import time
+
+    # t_0 = time.time()
+    # q_values = pmap_train(key_batches)
+    # t_1 = time.time()
+    # print("Elapsed time:", t_1 - t_0)
+
+    # print(q_values.shape)
+
+    # q_values = jnp.concatenate(q_values, axis=0)
+
     # print(q_values.shape)
     # print(jnp.max(q_values, axis=(1, 2, 3)))
 
-    pmap_train = jax.pmap(vmap_train)
+    # q_values = q_values[0]
+    # for row in range(5):
+    #     for col in range(5):
+    #         print(f"{jnp.max(q_values[row, col, :]):.3f}", end=" ")
+    #     print()
 
-    import time
+    # print()
+    # directions = ["→", "←", "↑", "↓"]
+    # for row in range(5):
+    #     for col in range(5):
+    #         mx_val = jnp.max(q_values[row, col, :])
+    #         d = jnp.argmax(q_values[row, col, :])
 
-    t_0 = time.time()
-    q_values = pmap_train(key_batches)
-    t_1 = time.time()
-    print("Elapsed time:", t_1 - t_0)
-
-    print(q_values.shape)
-
-    q_values = jnp.concatenate(q_values, axis=0)
-
-    print(q_values.shape)
-    print(jnp.max(q_values, axis=(1, 2, 3)))
-
-    q_values = q_values[0]
-    for row in range(5):
-        for col in range(5):
-            print(f"{jnp.max(q_values[row, col, :]):.3f}", end=" ")
-        print()
-
-    print()
-    directions = ["→", "←", "↑", "↓"]
-    for row in range(5):
-        for col in range(5):
-            mx_val = jnp.max(q_values[row, col, :])
-            d = jnp.argmax(q_values[row, col, :])
-
-            if mx_val == 0:
-                print("x", end="  ")
-            else:
-                print(directions[d], end="  ")
-        print()
+    #         if mx_val == 0:
+    #             print("x", end="  ")
+    #         else:
+    #             print(directions[d], end="  ")
+    #     print()
 
     # keys = jax.random.split(key, 10)
     # q_values = jax.soft_pmap(train_agent)(keys)
