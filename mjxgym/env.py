@@ -34,7 +34,9 @@ class GridWorld:
         next_obs = Observation(agent_pos=next_agent_pos)
 
         solved = jnp.array_equal(next_agent_pos, jnp.array([4, 4]))
-        done = solved | (next_state.step_count >= self.max_steps)
+        # done = solved | (next_state.step_count >= self.max_steps)
+        # solved = True
+        done = solved
 
         reward = jax.lax.cond(
             solved,
@@ -63,13 +65,3 @@ class GridWorld:
         render_grid = state.grid.at[tuple(state.agent_pos)].set(2)
         print(render_grid)
         print()
-
-
-# if __name__ == "__main__":
-#     env = AutoResetWrapper(GridWorld())
-
-#     key = jax.random.PRNGKey(0)
-#     state, timestep = env.reset(key)
-#     state, timestep = env.step(state, jnp.array(0))
-
-#     print(state, timestep)

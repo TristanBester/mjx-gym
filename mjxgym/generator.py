@@ -20,7 +20,8 @@ class GridWorldGenerator:
 
     def __call__(self, key) -> State:
         def cond_fun(grid, agent_pos):
-            return grid[tuple(agent_pos)] == 1
+            wall_pos = grid[tuple(agent_pos)] == 1
+            return wall_pos
 
         def loop_body(key, grid, agent_pos):
             key, subkey = jax.random.split(key)
@@ -28,7 +29,7 @@ class GridWorldGenerator:
                 key=subkey,
                 shape=(2,),
                 minval=0,
-                maxval=5,
+                maxval=4,  # To prevent spawning on finish
                 dtype=jnp.int32,
             )
             return key, grid, agent_pos
@@ -44,7 +45,7 @@ class GridWorldGenerator:
                     key=subkey,
                     shape=(2,),
                     minval=0,
-                    maxval=5,
+                    maxval=4,  # To prevent spawning on finish
                     dtype=jnp.int32,
                 ),
             ),

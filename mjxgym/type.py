@@ -96,6 +96,10 @@ def transition(reward, observation, discount, extras) -> TimeStep:
 
 def termination(reward, observation, extras) -> TimeStep:
     """Return a timestep with steptype as LAST"""
+    # Setting discount factor to zero for terminal transitions
+    # Allows TD target to be computed without if condition
+    # As the boostrap estimate will be computed by multiplied by zero,
+    # So we can avoid the if condition in the update rule.
     return TimeStep(
         step_type=StepType.LAST,
         reward=reward,
@@ -107,6 +111,7 @@ def termination(reward, observation, extras) -> TimeStep:
 
 def truncation(reward, observation, discount, extras) -> TimeStep:
     """Return a timestep with steptype as LAST"""
+    # We don't set discount to zero as we want to bootstrap the value
     discount = discount or jnp.array(1, dtype=jnp.float32)
     return TimeStep(
         step_type=StepType.LAST,

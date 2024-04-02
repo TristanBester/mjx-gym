@@ -7,7 +7,7 @@ from jax_tqdm import loop_tqdm
 from mjxgym.env import GridWorld
 from mjxgym.wrappers import AutoResetWrapper
 
-N_STEPS = 1_000_000
+N_STEPS = 10_000_000
 
 
 @jax.jit
@@ -15,23 +15,9 @@ def update_q_values(q_values, timestep, action, next_timestep):
     state_action_idx = jnp.append(timestep.observation.agent_pos, action)
     curr_val = q_values[tuple(state_action_idx)]
 
-    def last_step_td_target(q_values, time_step, next_timestep):
-        td_target = timestep.reward
-        return td_target
-
-    def mid_step_td_target(q_values, time_step, next_timestep):
-        td_target = timestep.reward + timestep.discount * jnp.max(
-            q_values[tuple(next_timestep.observation.agent_pos)]
-        )
-        return td_target
-
-    td_target = jax.lax.cond(
-        timestep.is_last(),
-        last_step_td_target,
-        mid_step_td_target,
-        q_values,
-        timestep,
-        next_timestep,
+    # This handles the last step as discount is 0 if next_step is terminal
+    td_target = next_timestep.reward + next_timestep.discount * jnp.max(
+        q_values[tuple(next_timestep.observation.agent_pos)]
     )
 
     td_error = td_target - curr_val
@@ -50,9 +36,24 @@ def fori_body(_, val):
         timestep,
     ) = val
 
-    key, subkey = jax.random.split(key)
-    action = jax.random.randint(subkey, (), 0, 4)
+    key, eps_key, act_key = jax.random.split(key, 3)
+    eps = jax.random.uniform(eps_key, ())
+    all_zero = jnp.max(q_values[tuple(state.agent_pos)]) == 0.0
+    eps_below = eps < 0.1
+    select_random = all_zero | eps_below
+    action = jax.lax.cond(
+        select_random,
+        lambda: jax.random.randint(act_key, (), 0, 4),
+        lambda: jnp.argmax(q_values[tuple(state.agent_pos)]),
+    )
+
+    # action = jnp.array(1)
+
     next_state, next_timestep = env.step(state, action)
+
+    # print(timestep)
+    # print(next_timestep)
+
     q_values = update_q_values(q_values, timestep, action, next_timestep)
 
     val = (q_values, key, next_state, next_timestep)
@@ -71,20 +72,57 @@ def train_agent():
     return val[0]
 
 
-# 722 it/s with jit_step
 if __name__ == "__main__":
     env = AutoResetWrapper(GridWorld())
     q_values = train_agent()
 
     print(q_values.max())
 
-    # env = AutoResetWrapper(GridWorld())
+    for row in range(5):
+        for col in range(5):
+            print(f"{jnp.max(q_values[row, col, :]):.3f}", end=" ")
+        print()
+
+    print()
+    directions = ["→", "←", "↑", "↓"]
+    for row in range(5):
+        for col in range(5):
+            mx_val = jnp.max(q_values[row, col, :])
+            d = jnp.argmax(q_values[row, col, :])
+
+            if mx_val == 0:
+                print("x", end="  ")
+            else:
+                print(directions[d], end="  ")
+        print()
+
+    # env = AutoResetWrapper(GridWorld(), next_obs_in_extras=False)
     # key = jax.random.PRNGKey(0)
     # state, timestep = env.reset(key)
+    # q_values = jnp.zeros((5, 5, 4))
+
+    # state = state._replace(agent_pos=jnp.array([4, 3]))
+    # action = jnp.array(0)
+
+    # val = (q_values, key, state, timestep)
+    # fori_body(0, val)
+
+    # env = AutoResetWrapper(GridWorld(), next_obs_in_extras=False)
+    # key = jax.random.PRNGKey(0)
+    # state, timestep = env.reset(key)
+
+    # # print(timestep)
+    # # print()
 
     # state, timestep = env.step(state, jnp.array(0))
 
     # print(timestep)
+    # print()
+
+    # state, timestep = env.step(state, jnp.array(0))
+
+    # print(timestep)
+    # print()
 
 
 # jit_reset = jax.jit(env.reset)
