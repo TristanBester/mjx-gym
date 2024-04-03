@@ -13,6 +13,8 @@ chex = "^0.1.86"
 jaxlib = "^0.4.25"
 tqdm = "^4.66.2"
 jax-tqdm = "^0.1.2"
+matplotlib = "^3.8.3"
+mediapy = "^1.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
