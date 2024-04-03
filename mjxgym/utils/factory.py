@@ -13,7 +13,7 @@ def create_initial_timestep(
     observation: Observation, info: dict | None = None
 ) -> TimeStep[Observation]:
     """Factory function for creating a TimeStep object with FIRST step type."""
-    info = info or {}
+    info = info or {"truncated": False}
     return TimeStep(
         step_type=StepType.FIRST,
         observation=observation,
@@ -30,15 +30,16 @@ def create_timestep(
     reward: chex.Array,
     discount: chex.Array,
     info: dict | None = None,
-):
-    dn = 1 if done else 0
-    tr = 1 if truncated else 0
+) -> TimeStep[Observation]:
+    """Factory function for creating a TimeStep object based on the given parameters."""
+    dn = jax.lax.convert_element_type(done, jnp.int8)
+    tr = jax.lax.convert_element_type(truncated, jnp.int8)
     branch_idx = dn + tr
 
     # If not done, then not truncated, branch 0
     # If done and not trancted, branch 1
     # If done and truncated, branch 2
-    info = info or {}
+    info = info or {"truncated": False}
     return jax.lax.switch(
         branch_idx,
         (
