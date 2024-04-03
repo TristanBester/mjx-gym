@@ -4,16 +4,13 @@ import jax.numpy as jnp
 
 from mjxgym.envs.gridworld.constants import MOVES
 from mjxgym.envs.gridworld.generator import GridWorldGenerator
-from mjxgym.envs.gridworld.renderer import GridWorldRenderer
 from mjxgym.envs.gridworld.reward import SparseReward
 from mjxgym.envs.gridworld.types import Observation, State
 from mjxgym.interfaces.environment import Environment
 from mjxgym.interfaces.generator import Generator
-from mjxgym.interfaces.render import Renderer
 from mjxgym.interfaces.reward import RewardFunction
 from mjxgym.types.timestep import TimeStep
 from mjxgym.utils.factory import create_initial_timestep, create_timestep
-from mjxgym.wrappers.wrappers import AutoResetWrapper
 
 
 class GridWorld(Environment[State, Observation]):
@@ -27,11 +24,13 @@ class GridWorld(Environment[State, Observation]):
         self,
         generator: Generator[State] = GridWorldGenerator(),
         reward_function: RewardFunction[State] = SparseReward(),
+        discount: float = 0.99,
         max_steps: int = 100,
     ) -> None:
         """Initialize the GridWorld environment."""
         self.generator = generator
         self.reward_function = reward_function
+        self.discount = jnp.array(discount, dtype=jnp.float32)
         self.max_steps = max_steps
 
     def reset(self, key: chex.Array) -> tuple[State, TimeStep[Observation]]:
@@ -71,7 +70,7 @@ class GridWorld(Environment[State, Observation]):
             truncated=truncated,
             observation=next_obs,
             reward=reward,
-            discount=jnp.array(0.99),
+            discount=self.discount,
         )
         return next_state, timestep
 
@@ -93,21 +92,3 @@ class GridWorld(Environment[State, Observation]):
             lambda: next_agent_pos,
             lambda: agent_pos,
         )
-
-
-if __name__ == "__main__":
-    env = GridWorld(
-        generator=GridWorldGenerator(approx_grid_size=10),
-        reward_function=SparseReward(),
-    )
-    env = AutoResetWrapper(env)
-    key = jax.random.PRNGKey(0)
-    states = []
-    state, timestep = env.reset(key)
-
-    state = state.replace(agent_pos=jnp.array([1, 1]))
-    state = state.replace(step_count=1000)
-    action = jnp.array(0)
-    state, timestep = env.step(state, action)
-
-    print(timestep)
