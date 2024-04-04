@@ -59,33 +59,33 @@ class VmapAutoResetWrapper(AutoResetWrapper[State, Observation]):
         """Reset the environment."""
         return self.jit_reset(key)
 
-    # def step(
-    #     self, state: State, action: chex.Array
-    # ) -> tuple[State, TimeStep[Observation]]:
-    #     """Exexute the given action in the wrapped environment."""
-    #     # Vmap homogeneous computation (parallelizable).
-    #     return self.jit_step(state, action)
-
     def step(
         self, state: State, action: chex.Array
     ) -> tuple[State, TimeStep[Observation]]:
         """Exexute the given action in the wrapped environment."""
         # Vmap homogeneous computation (parallelizable).
-        state, timestep = self.jit_step(state, action)
-        # Map heterogeneous computation (non-parallelizable).
-        state, timestep = jax.lax.map(
-            lambda args: self._reset_if_required(*args),
-            (state, timestep),
-        )
-        return state, timestep
+        return self.jit_step(state, action)
 
-    def _reset_if_required(self, state, timestep):
-        """Reset the environment if the timestep is the last."""
-        state, timestep = jax.lax.cond(
-            timestep.is_last(),
-            self._auto_reset,
-            lambda s, t: (s, t),
-            state,
-            timestep,
-        )
-        return state, timestep
+    # def step(
+    #     self, state: State, action: chex.Array
+    # ) -> tuple[State, TimeStep[Observation]]:
+    #     """Exexute the given action in the wrapped environment."""
+    #     # Vmap homogeneous computation (parallelizable).
+    #     state, timestep = self.jit_step(state, action)
+    #     # Map heterogeneous computation (non-parallelizable).
+    #     state, timestep = jax.lax.map(
+    #         lambda args: self._reset_if_required(*args),
+    #         (state, timestep),
+    #     )
+    #     return state, timestep
+
+    # def _reset_if_required(self, state, timestep):
+    #     """Reset the environment if the timestep is the last."""
+    #     state, timestep = jax.lax.cond(
+    #         timestep.is_last(),
+    #         self._auto_reset,
+    #         lambda s, t: (s, t),
+    #         state,
+    #         timestep,
+    #     )
+    #     return state, timestep
