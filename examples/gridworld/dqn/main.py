@@ -5,11 +5,13 @@ import flashbax as fbx
 import flax
 import flax.linen as nn
 import jax
+import jax.experimental
 import jax.numpy as jnp
 import optax
 from flax.training.train_state import TrainState
 from jax_tqdm import loop_tqdm
 
+from examples.gridworld.dqn.loggers import ReturnsLogger
 from mjxgym.envs.gridworld.env import GridWorld
 from mjxgym.envs.gridworld.generator import GridWorldGenerator
 from mjxgym.wrappers.wrappers import VmapAutoResetWrapper
@@ -34,12 +36,54 @@ class DqnTrainState(TrainState):
     n_updates: int
 
 
-@jax.jit
+class ReturnsBuffer:
+    def __init__(self, env_count):
+        self.env_count = env_count
+
+    def init(self):
+        return_buffer = jnp.full((self.env_count, 10000), fill_value=0.0)
+        ep_counters = jnp.zeros(self.env_count, dtype=jnp.int32)
+        curr_ep_returns = jnp.zeros(self.env_count, dtype=jnp.float32)
+        return return_buffer, ep_counters, curr_ep_returns
+
+    def store(self, returns_buffer, ep_counters, curr_ep_returns, rewards, dones):
+        curr_ep_returns += rewards
+        dones = jax.lax.convert_element_type(dones, jnp.float32)
+        buffer_modifiers = jnp.multiply(curr_ep_returns, dones)
+        buffer_idx = (jnp.arange(4, dtype=jnp.int32), ep_counters)
+        updated_values = jnp.add(returns_buffer[buffer_idx], buffer_modifiers)
+        returns_buffer = returns_buffer.at[buffer_idx].set(updated_values)
+        ep_counters += dones.astype(jnp.int32)
+        curr_ep_returns = jnp.multiply(curr_ep_returns, jnp.subtract(1.0, dones))
+        return returns_buffer, ep_counters, curr_ep_returns
+
+
 def create_train():
-    N_ITERS = 1_000_000
+    N_ITERS = 500_000
     generator = GridWorldGenerator(approx_grid_size=5)
     env = VmapAutoResetWrapper(GridWorld(generator, max_steps=100))
 
+    returns_buffer = ReturnsBuffer(4)
+    bufferr, ep_counters, curr_ep_returns = returns_buffer.init()
+
+    # rewards = jnp.array([0.0, 1.0, 1.0, 0.0])
+    # dones = jnp.array([False, False, True, True])
+
+    # returns_buffer.store(bufferr, ep_counters, curr_ep_returns, rewards, dones)
+
+    logger = ReturnsLogger(4)
+
+    # logger.log(rewards, dones)
+
+    # rewards = jnp.array([1.0, 0.0, 0.0, 1.0])
+    # dones = jnp.array([False, False, False, False])
+    # logger.log(rewards, dones)
+
+    # rewards = jnp.array([1.0, 1.0, 1.0, 1.0])
+    # dones = jnp.array([True, False, True, False])
+    # logger.log(rewards, dones)
+
+    @jax.jit
     def train(key: chex.Array):
         """Pass in a batch of keys one for each vectorised environment."""
         # Create and initialise replay buffer.
@@ -85,7 +129,16 @@ def create_train():
 
         @loop_tqdm(N_ITERS)
         def fori_body(i: int, val: tuple) -> tuple:
-            key, train_state, buffer_state, states, timesteps = val
+            (
+                key,
+                train_state,
+                buffer_state,
+                states,
+                timesteps,
+                bufferr,
+                ep_counters,
+                curr_ep_returns,
+            ) = val
 
             # Sample actions from the Q-network
             key, subkey = jax.random.split(key)
@@ -162,9 +215,35 @@ def create_train():
                 )
                 return train_state
 
-            train_state = jax.lax.cond(
-                update_target, update_target_network, lambda ts: ts, train_state
+            bufferr, ep_counters, curr_ep_returns = returns_buffer.store(
+                bufferr,
+                ep_counters,
+                curr_ep_returns,
+                next_timesteps.reward,
+                next_timesteps.is_last(),
             )
+
+            # train_state = jax.lax.cond(
+            #     update_target, update_target_network, lambda ts: ts, train_state
+            # )
+
+            jax.debug.callback(
+                logger.log,
+                timesteps.reward,
+                timesteps.is_last(),
+            )
+
+            # log_iter = i % 100000 == 0
+            # jax.lax.cond(
+            #     log_iter,
+            #     lambda i: jax.debug.callback(
+            #         logger.log,
+            #         timesteps.reward,
+            #         timesteps.is_last(),
+            #     ),
+            #     lambda _: None,
+            #     i,
+            # )
 
             return (
                 key,
@@ -172,6 +251,9 @@ def create_train():
                 buffer_state,
                 next_states,
                 next_timesteps,
+                bufferr,
+                ep_counters,
+                curr_ep_returns,
             )
 
         # Initialise the environment
@@ -186,30 +268,31 @@ def create_train():
             buffer_state,
             states,
             timesteps,
+            bufferr,
+            ep_counters,
+            curr_ep_returns,
         )
-        (
-            _,
-            train_state,
-            _,
-            _,
-            _,
-        ) = jax.lax.fori_loop(0, N_ITERS, fori_body, val)
+        (_, train_state, _, _, _, _, _, _) = jax.lax.fori_loop(
+            0, N_ITERS, fori_body, val
+        )
         return train_state
 
     N_ENVS = 4
     key = jax.random.PRNGKey(10)
-    return train(key)
+    output = train(key)
+    # logger.dump()
+    return output
 
 
 if __name__ == "__main__":
     train_state = create_train()
-    q_network = QNetwork(action_dim=4)
+    # q_network = QNetwork(action_dim=4)
 
-    directions = ["→", "←", "↑", "↓"]
-    for row in range(5):
-        for col in range(5):
-            q_values = q_network.apply(train_state.params, jnp.array([row, col]))
-            action = directions[jnp.argmax(q_values)]
+    # directions = ["→", "←", "↑", "↓"]
+    # for row in range(5):
+    #     for col in range(5):
+    #         q_values = q_network.apply(train_state.params, jnp.array([row, col]))
+    #         action = directions[jnp.argmax(q_values)]
 
-            print(action, end=" ")
-        print()
+    #         print(action, end=" ")
+    #     print()
