@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from mjxgym.types.state import EnvironmentState
 
 
-@chex.dataclass
+@chex.dataclass(frozen=True)
 class State(EnvironmentState):
     """Model of GridWorld environment state."""
 
@@ -13,7 +13,7 @@ class State(EnvironmentState):
     agent_pos: chex.Array
 
 
-@chex.dataclass
+@chex.dataclass(frozen=True)
 class Observation:
     """Model of the agent-observable properties of the environment state."""
 

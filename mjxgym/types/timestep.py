@@ -14,7 +14,7 @@ class StepType(jnp.int8):
     LAST = jnp.array(2, jnp.int8)
 
 
-@chex.dataclass
+@chex.dataclass(frozen=True)
 class TimeStep(Generic[Observation]):
     """Contains the information associated with an environmental interaction."""
 

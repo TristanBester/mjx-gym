@@ -1,7 +1,7 @@
 import chex
 
 
-@chex.dataclass
+@chex.dataclass(frozen=True)
 class EnvironmentState:
     """Base class for environment states."""
 
