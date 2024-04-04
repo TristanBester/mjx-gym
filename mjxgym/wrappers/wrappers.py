@@ -47,7 +47,7 @@ class AutoResetWrapper(Wrapper[State, Observation]):
         return state, timestep
 
 
-class VmapAutoReset(AutoResetWrapper[State, Observation]):
+class VmapAutoResetWrapper(AutoResetWrapper[State, Observation]):
     """An environment wrapper that applies vmap to the reset method."""
 
     def __init__(self, env: Environment[State, Observation]):

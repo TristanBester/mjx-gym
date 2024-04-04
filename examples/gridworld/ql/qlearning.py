@@ -71,3 +71,24 @@ class EpsilonGreedy:
             act_key,
         )
         return action
+
+
+class ReturnsManager:
+    def init(self, max_episodes: int) -> tuple[int, chex.Array]:
+        returns = jnp.full((max_episodes,), 0.0, dtype=jnp.float32)
+        ep_counter = 0
+        return ep_counter, returns
+
+    def update_returns(
+        self, returns_buffer: chex.Array, ep_counter: int, timestep: TimeStep
+    ) -> tuple[int, chex.Array]:
+        curr_ep_return = returns_buffer[ep_counter]
+        updated_ep_return = curr_ep_return + timestep.reward
+        returns_buffer = returns_buffer.at[ep_counter].set(updated_ep_return)
+        ep_counter = jax.lax.cond(
+            timestep.is_last(),
+            lambda c: c + 1,
+            lambda c: c,
+            ep_counter,
+        )
+        return ep_counter, returns_buffer
