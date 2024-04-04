@@ -55,6 +55,11 @@ class VmapAutoResetWrapper(AutoResetWrapper[State, Observation]):
         self.jit_reset = jax.jit(jax.vmap(self._env.reset))
         self.jit_step = jax.jit(jax.vmap(self._env.step))
 
+    @property
+    def unwrapped(self) -> Environment[State, Observation]:
+        """Return the unwrapped environment."""
+        return self._env
+
     def reset(self, key: chex.Array) -> tuple[State, TimeStep[Observation]]:
         """Reset the environment."""
         return self.jit_reset(key)

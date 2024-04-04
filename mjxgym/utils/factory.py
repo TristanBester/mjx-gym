@@ -19,6 +19,7 @@ def create_initial_timestep(
         observation=observation,
         reward=jnp.array(0.0, dtype=jnp.float32),
         discount=jnp.array(1.0, dtype=jnp.float32),
+        action=jnp.array(-1.0, dtype=jnp.int32),
         info=info,
     )
 
@@ -29,6 +30,7 @@ def create_timestep(
     observation: Observation,
     reward: chex.Array,
     discount: chex.Array,
+    action: chex.Array,
     info: dict | None = None,
 ) -> TimeStep[Observation]:
     """Factory function for creating a TimeStep object based on the given parameters."""
@@ -50,6 +52,7 @@ def create_timestep(
         observation,
         reward,
         discount,
+        action,
         info,
     )
 
@@ -58,6 +61,7 @@ def _create_transition_timestep(
     observation: Observation,
     reward: chex.Array,
     discount: chex.Array,
+    action: chex.Array,
     info: dict,
 ) -> TimeStep[Observation]:
     """Factory function for creating a TimeStep object with MID step type."""
@@ -67,6 +71,7 @@ def _create_transition_timestep(
         observation=observation,
         reward=reward,
         discount=discount,
+        action=action,
         info=info,
     )
 
@@ -75,6 +80,7 @@ def _create_terminated_timestep(
     observation: Observation,
     reward: chex.Array,
     discount: chex.Array,
+    action: chex.Array,
     info: dict,
 ) -> TimeStep[Observation]:
     """Factory function for creating a TimeStep object for transitions into terminal states.
@@ -88,6 +94,7 @@ def _create_terminated_timestep(
         observation=observation,
         reward=reward,
         discount=jnp.array(0.0, dtype=jnp.float32),
+        action=action,
         info=info,
     )
 
@@ -96,6 +103,7 @@ def _create_truncated_timestep(
     observation: Observation,
     reward: chex.Array,
     discount: chex.Array,
+    action: chex.Array,
     info: dict,
 ) -> TimeStep[Observation]:
     """Factory function for creating a TimeStep object for truncated trajectories.
@@ -108,5 +116,6 @@ def _create_truncated_timestep(
         observation=observation,
         reward=reward,
         discount=discount,
+        action=action,
         info=info,
     )

@@ -64,6 +64,7 @@ class GridWorld(Environment[State, Observation]):
         next_obs = Observation(
             agent_pos=next_agent_pos,
         )
+        # TODO: As timestep now contains action, the reward function can be a function of timestep maybe?
         reward = self.reward_function(state, action, next_state)
         timestep = create_timestep(
             done=done,
@@ -71,6 +72,7 @@ class GridWorld(Environment[State, Observation]):
             observation=next_obs,
             reward=reward,
             discount=self.discount,
+            action=action,
         )
         return next_state, timestep
 

@@ -22,6 +22,7 @@ class TimeStep(Generic[Observation]):
     observation: Observation
     reward: chex.Array
     discount: chex.Array
+    action: chex.Array
     info: dict
 
     def is_first(self) -> bool:
