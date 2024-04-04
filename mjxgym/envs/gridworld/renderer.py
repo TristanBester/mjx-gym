@@ -35,6 +35,7 @@ class GridWorldRenderer(Renderer[State]):
             frames.append(self.render_pixels(state))
 
         write_video(path=path, images=frames, fps=1)
+        print(f"Saved trajectory to {path}")
 
     def _draw(self, state: State) -> tuple[Figure, Axes]:
         fig = Figure()
