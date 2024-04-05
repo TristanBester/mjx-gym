@@ -11,10 +11,14 @@ import optax
 from flax.training.train_state import TrainState
 from jax_tqdm import loop_tqdm
 
-from examples.gridworld.dqn.loggers import ReturnsLogger
+from examples.gridworld.dqn.loggers import Logger
 from mjxgym.envs.gridworld.env import GridWorld
 from mjxgym.envs.gridworld.generator import GridWorldGenerator
 from mjxgym.wrappers.wrappers import VmapAutoResetWrapper
+
+# With per timestep logging ~ 33k
+# With new logger ~ 58k
+# With no logging ~ 60k
 
 
 class QNetwork(nn.Module):
@@ -59,19 +63,14 @@ class ReturnsBuffer:
 
 
 def create_train():
-    N_ITERS = 500_000
+    N_ITERS = 1_000_000
     generator = GridWorldGenerator(approx_grid_size=5)
     env = VmapAutoResetWrapper(GridWorld(generator, max_steps=100))
-
-    returns_buffer = ReturnsBuffer(4)
-    bufferr, ep_counters, curr_ep_returns = returns_buffer.init()
 
     # rewards = jnp.array([0.0, 1.0, 1.0, 0.0])
     # dones = jnp.array([False, False, True, True])
 
     # returns_buffer.store(bufferr, ep_counters, curr_ep_returns, rewards, dones)
-
-    logger = ReturnsLogger(4)
 
     # logger.log(rewards, dones)
 
@@ -135,9 +134,7 @@ def create_train():
                 buffer_state,
                 states,
                 timesteps,
-                bufferr,
-                ep_counters,
-                curr_ep_returns,
+                logger_state,
             ) = val
 
             # Sample actions from the Q-network
@@ -204,7 +201,7 @@ def create_train():
                 train_state,
             )
 
-            update_target = train_state.n_updates % 1 == 0
+            update_target = train_state.n_updates % 100 == 0
 
             def update_target_network(train_state):
                 updated_target_params = optax.incremental_update(
@@ -215,23 +212,21 @@ def create_train():
                 )
                 return train_state
 
-            bufferr, ep_counters, curr_ep_returns = returns_buffer.store(
-                bufferr,
-                ep_counters,
-                curr_ep_returns,
+            train_state = jax.lax.cond(
+                update_target, update_target_network, lambda ts: ts, train_state
+            )
+
+            logger_state = logger.log(
+                logger_state,
                 next_timesteps.reward,
                 next_timesteps.is_last(),
             )
 
-            # train_state = jax.lax.cond(
-            #     update_target, update_target_network, lambda ts: ts, train_state
+            # jax.debug.callback(
+            #     logger.log,
+            #     timesteps.reward,
+            #     timesteps.is_last(),
             # )
-
-            jax.debug.callback(
-                logger.log,
-                timesteps.reward,
-                timesteps.is_last(),
-            )
 
             # log_iter = i % 100000 == 0
             # jax.lax.cond(
@@ -251,10 +246,14 @@ def create_train():
                 buffer_state,
                 next_states,
                 next_timesteps,
-                bufferr,
-                ep_counters,
-                curr_ep_returns,
+                logger_state,
             )
+
+        logger = Logger()
+        logger_state = logger.init(
+            export_freq=100,
+            env_count=4,
+        )
 
         # Initialise the environment
         key, subkey = jax.random.split(key)
@@ -268,20 +267,23 @@ def create_train():
             buffer_state,
             states,
             timesteps,
-            bufferr,
-            ep_counters,
-            curr_ep_returns,
+            logger_state,
         )
-        (_, train_state, _, _, _, _, _, _) = jax.lax.fori_loop(
+        (_, train_state, _, _, _, logger_state) = jax.lax.fori_loop(
             0, N_ITERS, fori_body, val
         )
-        return train_state
+        return train_state, logger_state
 
     N_ENVS = 4
     key = jax.random.PRNGKey(10)
-    output = train(key)
+    ts, logger_state = train(key)
+
+    # Logger()._export(logger_state)
+
+    # print(logger_state.returns_buffer)
+
     # logger.dump()
-    return output
+    return ts
 
 
 if __name__ == "__main__":

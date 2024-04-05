@@ -37,18 +37,14 @@ class Logger:
 
     def _handle_export(self, logger_state: LoggerState) -> None:
         """Export the data to disk."""
-
         returns = []
         for i, c in enumerate(logger_state.ep_counters):
             returns.append(logger_state.returns_buffer[i, :c])
-        returns = np.hstack(returns)
+        returns = jnp.hstack(returns)
+        writer.add_scalar("returns", returns.mean(), logger_state.total_episodes)
 
-        eps = jnp.arange(
-            logger_state.total_episodes - len(returns), logger_state.total_episodes
-        )
-
-        for ep, r in zip(eps, returns):
-            writer.add_scalar("returns", r, ep)
+        # for ep, r in zip(eps, returns):
+        #     writer.add_scalar("returns", r, ep)
 
     def _export(self, logger_state: LoggerState) -> LoggerState:
         logger_state = logger_state.replace(
@@ -56,6 +52,8 @@ class Logger:
         )
 
         jax.debug.callback(self._handle_export, logger_state)
+
+        # jax.debug.print("Exporting")
 
         # Start logging from the beginning of the returns buffer
         ep_counters = logger_state.ep_counters.at[:].set(0)
@@ -110,51 +108,51 @@ class Logger:
         return logger_state
 
 
-if __name__ == "__main__":
-    logger = Logger()
-    log_state = logger.init(env_count=4, export_freq=10)
+# if __name__ == "__main__":
+#     logger = Logger()
+#     log_state = logger.init(env_count=4, export_freq=10)
 
-    # rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
-    # dones = jnp.array([False, False, False, False], dtype=jnp.bool_)
-    # log_state = logger.log(log_state, rewards, dones)
-    # log_state = logger.log(log_state, rewards, dones)
-    # log_state = logger.log(log_state, rewards, dones)
-    # log_state = logger.log(log_state, rewards, dones)
-    # log_state = logger.log(log_state, rewards, dones)
+#     # rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
+#     # dones = jnp.array([False, False, False, False], dtype=jnp.bool_)
+#     # log_state = logger.log(log_state, rewards, dones)
+#     # log_state = logger.log(log_state, rewards, dones)
+#     # log_state = logger.log(log_state, rewards, dones)
+#     # log_state = logger.log(log_state, rewards, dones)
+#     # log_state = logger.log(log_state, rewards, dones)
 
-    # log_state = logger.log(log_state, rewards, dones)
-    # log_state = logger.log(log_state, rewards, dones)
-    # log_state = logger.log(log_state, rewards, dones)
-    # log_state = logger.log(log_state, rewards, dones)
-    # rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
-    # dones = jnp.array([True, True, True, True], dtype=jnp.bool_)
-    # log_state = logger.log(log_state, rewards, dones)
+#     # log_state = logger.log(log_state, rewards, dones)
+#     # log_state = logger.log(log_state, rewards, dones)
+#     # log_state = logger.log(log_state, rewards, dones)
+#     # log_state = logger.log(log_state, rewards, dones)
+#     # rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
+#     # dones = jnp.array([True, True, True, True], dtype=jnp.bool_)
+#     # log_state = logger.log(log_state, rewards, dones)
 
-    for i in range(100):
-        rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
-        dones = jnp.array([False, False, False, False], dtype=jnp.bool_)
-        log_state = logger.log(log_state, rewards, dones)
+#     for i in range(100):
+#         rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
+#         dones = jnp.array([False, False, False, False], dtype=jnp.bool_)
+#         log_state = logger.log(log_state, rewards, dones)
 
-        rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
-        rewards = jax.random.uniform(jax.random.PRNGKey(0), (4,), dtype=jnp.float32)
-        dones = jnp.array([True, True, True, True], dtype=jnp.bool_)
-        log_state = logger.log(log_state, rewards, dones)
+#         rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
+#         rewards = jax.random.uniform(jax.random.PRNGKey(0), (4,), dtype=jnp.float32)
+#         dones = jnp.array([True, True, True, True], dtype=jnp.bool_)
+#         log_state = logger.log(log_state, rewards, dones)
 
-    # ep_counts = jnp.array([3, 2, 1, 0])
-    # arr = jnp.array(
-    #     [
-    #         [1, 1, 1, 0],
-    #         [1, 1, 0, 0],
-    #         [1, 0, 0, 0],
-    #         [0, 0, 0, 0],
-    #     ]
-    # )
+#     # ep_counts = jnp.array([3, 2, 1, 0])
+#     # arr = jnp.array(
+#     #     [
+#     #         [1, 1, 1, 0],
+#     #         [1, 1, 0, 0],
+#     #         [1, 0, 0, 0],
+#     #         [0, 0, 0, 0],
+#     #     ]
+#     # )
 
-    # print(ep_counts)
-    # print(arr)
+#     # print(ep_counts)
+#     # print(arr)
 
-    # returns = []
-    # for i, c in enumerate(ep_counts):
-    #     returns.append(arr[i, :c])
-    # returns = np.hstack(returns)
-    # print(returns)
+#     # returns = []
+#     # for i, c in enumerate(ep_counts):
+#     #     returns.append(arr[i, :c])
+#     # returns = np.hstack(returns)
+#     # print(returns)
