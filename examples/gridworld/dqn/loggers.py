@@ -3,6 +3,10 @@ from functools import partial
 import chex
 import jax
 import jax.numpy as jnp
+import numpy as np
+from tensorboardX import SummaryWriter
+
+# consider having an episodic metric logger and a step metric logger
 
 
 @chex.dataclass(frozen=True)
@@ -15,6 +19,10 @@ class LoggerState:
     ep_returns: chex.Array
     returns_buffer: chex.Array
     log_counter: int = 0
+    total_episodes: int = 0
+
+
+writer = SummaryWriter("logs")
 
 
 class Logger:
@@ -29,22 +37,36 @@ class Logger:
 
     def _handle_export(self, logger_state: LoggerState) -> None:
         """Export the data to disk."""
-        print("Exporting")
-        print(logger_state.returns_buffer)
-        print("Done")
+
+        returns = []
+        for i, c in enumerate(logger_state.ep_counters):
+            returns.append(logger_state.returns_buffer[i, :c])
+        returns = np.hstack(returns)
+
+        eps = jnp.arange(
+            logger_state.total_episodes - len(returns), logger_state.total_episodes
+        )
+
+        for ep, r in zip(eps, returns):
+            writer.add_scalar("returns", r, ep)
 
     def _export(self, logger_state: LoggerState) -> LoggerState:
-        ep_counters = logger_state.ep_counters.at[:].set(0)
-        returns_buffer = logger_state.returns_buffer.at[:, :].set(0.0)
-        ep_returns = logger_state.ep_returns.at[:].set(0.0)
-
-        updated_logger_state = logger_state.replace(
-            ep_counters=ep_counters,
-            returns_buffer=returns_buffer,
-            ep_returns=ep_returns,
+        logger_state = logger_state.replace(
+            total_episodes=logger_state.total_episodes + logger_state.ep_counters.sum()
         )
 
         jax.debug.callback(self._handle_export, logger_state)
+
+        # Start logging from the beginning of the returns buffer
+        ep_counters = logger_state.ep_counters.at[:].set(0)
+        # Reset the returns buffer
+        returns_buffer = logger_state.returns_buffer.at[:, :].set(0.0)
+        # Note: Do not overwrite ep_returns to preserve rewards from currently active episodes
+        # Update the logger state
+        updated_logger_state = logger_state.replace(
+            ep_counters=ep_counters,
+            returns_buffer=returns_buffer,
+        )
         return updated_logger_state
 
     def log(
@@ -54,7 +76,6 @@ class Logger:
         curr_ep_returns = logger_state.ep_returns
         ep_counters = logger_state.ep_counters
         returns_buffer = logger_state.returns_buffer
-        env_count = logger_state.env_count
 
         # Compute new logger state
         curr_ep_returns += rewards
@@ -72,6 +93,7 @@ class Logger:
             ep_returns=curr_ep_returns,
             returns_buffer=returns_buffer,
             log_counter=logger_state.log_counter + 1,
+            total_episodes=logger_state.total_episodes,
         )
 
         export_required = jnp.equal(
@@ -92,11 +114,47 @@ if __name__ == "__main__":
     logger = Logger()
     log_state = logger.init(env_count=4, export_freq=10)
 
-    for i in range(20):
+    # rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
+    # dones = jnp.array([False, False, False, False], dtype=jnp.bool_)
+    # log_state = logger.log(log_state, rewards, dones)
+    # log_state = logger.log(log_state, rewards, dones)
+    # log_state = logger.log(log_state, rewards, dones)
+    # log_state = logger.log(log_state, rewards, dones)
+    # log_state = logger.log(log_state, rewards, dones)
+
+    # log_state = logger.log(log_state, rewards, dones)
+    # log_state = logger.log(log_state, rewards, dones)
+    # log_state = logger.log(log_state, rewards, dones)
+    # log_state = logger.log(log_state, rewards, dones)
+    # rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
+    # dones = jnp.array([True, True, True, True], dtype=jnp.bool_)
+    # log_state = logger.log(log_state, rewards, dones)
+
+    for i in range(100):
         rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
         dones = jnp.array([False, False, False, False], dtype=jnp.bool_)
         log_state = logger.log(log_state, rewards, dones)
 
         rewards = jnp.array([1, 1, 1, 1], dtype=jnp.float32)
+        rewards = jax.random.uniform(jax.random.PRNGKey(0), (4,), dtype=jnp.float32)
         dones = jnp.array([True, True, True, True], dtype=jnp.bool_)
         log_state = logger.log(log_state, rewards, dones)
+
+    # ep_counts = jnp.array([3, 2, 1, 0])
+    # arr = jnp.array(
+    #     [
+    #         [1, 1, 1, 0],
+    #         [1, 1, 0, 0],
+    #         [1, 0, 0, 0],
+    #         [0, 0, 0, 0],
+    #     ]
+    # )
+
+    # print(ep_counts)
+    # print(arr)
+
+    # returns = []
+    # for i, c in enumerate(ep_counts):
+    #     returns.append(arr[i, :c])
+    # returns = np.hstack(returns)
+    # print(returns)

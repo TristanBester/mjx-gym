@@ -18,6 +18,8 @@ mediapy = "^1.2.0"
 flax = "^0.8.2"
 flashbax = "^0.1.2"
 optax = "^0.2.2"
+tensorboardx = "^2.6.2.2"
+tensorboard = "^2.16.2"
 
 
 [tool.poetry.group.dev.dependencies]
