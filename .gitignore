@@ -1,5 +1,6 @@
 # Files 
 .DS_Store
+events.*
 
 # Directories
 __pycache__/
