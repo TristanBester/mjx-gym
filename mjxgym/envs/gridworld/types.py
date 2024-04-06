@@ -8,7 +8,6 @@ from mjxgym.types.state import EnvironmentState
 class State(EnvironmentState):
     """Model of GridWorld environment state."""
 
-    step_count: jnp.int32
     grid: chex.Array
     agent_pos: chex.Array
 
