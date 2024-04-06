@@ -9,6 +9,7 @@
 
     <worldbody>
         <light pos="0 0 0" dir="0 0 -1" directional="true" />
+        <!-- <geom name="floor" size="10 10 0.05" pos="0 0 -10" type="box" /> -->
 
         <body name="link_1" pos="0 0 0.075" euler="90 0 0">
             <geom type="cylinder" size="0.075 0.5" rgba="1 0 0 .5" />
@@ -17,12 +18,11 @@
             <body name="link_2" pos="0 0 -1" euler="0 0 0">
                 <geom type="cylinder" size="0.075 0.5" rgba="0 1 0 .5" />
                 <joint name="joint_2" type="hinge" axis="0 1 0" pos="0 -0.075 0.5" />
-                <site name="endeffector" type="sphere" rgba="0 0 1 1" size=".1" pos="0 0 -0.5"
-                />
+                <site name="endeffector" type="sphere" rgba="0 0 1 1" size=".1" pos="0 0 -0.5" />
             </body>
         </body>
 
-        <site name="target" type="box" rgba="0 1 1 1" size=".075 .075 .075" pos="1 1 0.075" />
+        <site name="target" type="box" rgba="0 1 1 1" size=".075 .075 .075" pos="0.5 0.5 0.075" />
     </worldbody>
 
     <visual>

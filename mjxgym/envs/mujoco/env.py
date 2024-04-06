@@ -1,13 +1,14 @@
 import chex
 import jax
 import jax.numpy as jnp
+import matplotlib.pyplot as plt
+import mujoco
 from jax_tqdm import loop_tqdm
-
-# import mujoco
 from mujoco import mjx
 
 from mjxgym.envs.mujoco.constants import ACTIONS
 from mjxgym.envs.mujoco.generator import GeneratorReacher2D
+from mjxgym.envs.mujoco.renderer import Reacher2DRenderer
 from mjxgym.envs.mujoco.reward import DenseRewardFunction
 from mjxgym.envs.mujoco.types import Observation, State
 from mjxgym.interfaces.environment import Environment
@@ -53,6 +54,11 @@ class Reacher2D(Environment[State, Observation]):
         # Update the state with the action
         next_q_pos = state.mjx_data.qpos + ACTIONS[action]
         next_mjx_data = state.mjx_data.replace(qpos=next_q_pos)
+
+        # Step the simulation
+        next_mjx_data = mjx.step(state.mjx_model, next_mjx_data)
+
+        # Update the system state
         next_state = State(
             key=state.key,
             step_count=state.step_count + 1,
@@ -61,13 +67,9 @@ class Reacher2D(Environment[State, Observation]):
             goal_position=state.goal_position,
         )
 
-        # Step the simulation
-        mjx.step(next_state.mjx_model, next_state.mjx_data)
-
+        # Aggregate timestep information
         reward = self.reward_function(state, action, next_state)
         done = self.max_steps <= state.step_count
-
-        # Return the next state
         obs = Observation(
             joint_1_angle=next_state.mjx_data.qpos[0],
             joint_2_angle=next_state.mjx_data.qpos[1],
@@ -85,6 +87,26 @@ class Reacher2D(Environment[State, Observation]):
 
 
 if __name__ == "__main__":
+    # mj_model_one = mujoco.MjModel.from_xml_path("assets/reacher.xml")
+    # mj_model_two = mujoco.MjModel.from_xml_path("assets/reacher.xml")
+
+    # mj_data = mujoco.MjData(mj_model_one)
+    # renderer = mujoco.Renderer(mj_model_two)
+
+    # mujoco.mj_resetData(mj_model_one, mj_data)
+    # mjx_data = mjx.put_data(mj_model_one, mj_data)
+    # mjx_model = mjx.put_model(mj_model_one)
+
+    # mjx_data = mjx.step(mjx_model, mjx_data)
+
+    # mj_data = mjx.get_data(mj_model_two, mjx_data)
+    # renderer.update_scene(data=mj_data)
+    # pixels = renderer.render()
+    # plt.imshow(pixels)
+    # plt.show()
+
+    #########################################
+
     env = Reacher2D()
     state, timestep = env.reset(jax.random.PRNGKey(0))
 
@@ -98,5 +120,5 @@ if __name__ == "__main__":
         return key, state, timestep
 
     key, state, timestep = jax.lax.fori_loop(
-        0, 100_000, fori_body, (jax.random.PRNGKey(0), state, timestep)
+        0, 10_000_000, fori_body, (jax.random.PRNGKey(0), state, timestep)
     )

@@ -9,7 +9,7 @@ State = TypeVar("State")
 class Renderer(ABC, Generic[State]):
     """Interface for environment renderers."""
 
-    @abstractmethod
+    # @abstractmethod
     def __call__(self, state: State) -> None:
         """Render the given environment state."""
 

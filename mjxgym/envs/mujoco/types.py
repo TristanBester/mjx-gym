@@ -1,5 +1,5 @@
 import chex
-from mujoco._structs import MjData, MjModel
+from mujoco.mjx._src.types import Data, Model
 
 from mjxgym.types.state import EnvironmentState
 
@@ -8,8 +8,8 @@ from mjxgym.types.state import EnvironmentState
 class State(EnvironmentState):
     """Model of Reacher2D environment state."""
 
-    mjx_model: MjModel
-    mjx_data: MjData
+    mjx_model: Model
+    mjx_data: Data
     goal_position: chex.Array
 
 

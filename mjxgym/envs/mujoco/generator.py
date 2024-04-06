@@ -16,13 +16,16 @@ class GeneratorReacher2D(Generator[State]):
         self.mj_model = mujoco.MjModel.from_xml_path(XML_PATH)
         self.mj_data = mujoco.MjData(self.mj_model)
 
-        # Send to accelataor
+    def __call__(self, key: chex.PRNGKey) -> State:
+        # Here we will move the target position to a random location
+        self.mj_model = mujoco.MjModel.from_xml_path(XML_PATH)
+        self.mj_data = mujoco.MjData(self.mj_model)
+        mujoco.mj_resetData(self.mj_model, self.mj_data)
+
         self.mjx_model = mjx.put_model(self.mj_model)
         self.mjx_data = mjx.put_data(self.mj_model, self.mj_data)
 
-    def __call__(self, key: chex.PRNGKey) -> State:
-        # Here we will move the target position to a random location
-        goal_position = jnp.array([0.3, 0.3])
+        goal_position = jnp.array([0.5, 0.5])
         key, subkey = jax.random.split(key)
         return State(
             key=subkey,

@@ -15,3 +15,8 @@ ACTIONS = jnp.array(
         [0.0, 0.0],
     ]
 )
+
+# Index of goal site in MuJoCo site data arrays
+GOAL_SITE_IDX = 0
+# Index of end effector site in MuJoCo site data arrays
+EE_SITE_IDX = 1
