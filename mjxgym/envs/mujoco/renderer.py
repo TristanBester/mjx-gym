@@ -1,5 +1,6 @@
 import mujoco
 import numpy as np
+from mediapy import write_video
 from mujoco import mjx
 
 from mjxgym.envs.mujoco.constants import XML_PATH
@@ -32,4 +33,9 @@ class Reacher2DRenderer(Renderer[State]):
         return pixels
 
     def animate_trajectory(self, states: list[State], path: str) -> None:
-        pass
+        frames = []
+        for state in states:
+            frames.append(self.render_pixels(state))
+
+        write_video(path=path, images=frames, fps=30)
+        print(f"Saved trajectory to {path}")
