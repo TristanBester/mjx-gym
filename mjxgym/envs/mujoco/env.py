@@ -1,5 +1,6 @@
 import chex
 import jax
+import jax.numpy as jnp
 from mujoco import mjx
 
 from mjxgym.envs.mujoco.constants import ACTIONS
@@ -34,8 +35,7 @@ class Reacher2D(Environment[State, Observation]):
         key, subkey = jax.random.split(key)
         state = self.generator(subkey)
         obs = Observation(
-            joint_1_angle=state.mjx_data.qpos[0],
-            joint_2_angle=state.mjx_data.qpos[1],
+            joint_angles=state.mjx_data.qpos,
             goal_position=state.goal_position,
         )
         timestep = create_initial_timestep(
@@ -64,15 +64,16 @@ class Reacher2D(Environment[State, Observation]):
 
         # Aggregate timestep information
         reward = self.reward_function(state, action, next_state)
-        done = self.max_steps <= state.step_count
+        done = jnp.abs(reward) < 0.05
+        truncated = state.step_count >= self.max_steps
+
         obs = Observation(
-            joint_1_angle=next_state.mjx_data.qpos[0],
-            joint_2_angle=next_state.mjx_data.qpos[1],
+            joint_angles=next_state.mjx_data.qpos,
             goal_position=next_state.goal_position,
         )
         next_timestep = create_timestep(
             done=done,
-            truncated=False,
+            truncated=truncated,
             observation=obs,
             action=action,
             reward=reward,

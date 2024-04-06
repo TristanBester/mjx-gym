@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 
-XML_PATH = "assets/reacher.xml"
+XML_PATH = "/Users/tristan/Projects/mjx-gym/mjxgym/envs/mujoco/assets/reacher.xml"
 
 ACTIONS = jnp.array(
     [

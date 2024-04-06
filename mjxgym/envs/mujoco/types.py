@@ -1,4 +1,5 @@
 import chex
+import jax.numpy as jnp
 from mujoco.mjx._src.types import Data, Model
 
 from mjxgym.types.state import EnvironmentState
@@ -23,6 +24,11 @@ class Observation:
         goal_position: The position of the goal in the environment.
     """
 
-    joint_1_angle: chex.Array
-    joint_2_angle: chex.Array
+    joint_angles: chex.Array
     goal_position: chex.Array
+
+    def to_array(self) -> chex.Array:
+        return jnp.concatenate(
+            (self.joint_angles, self.goal_position),
+            axis=-1,
+        )
