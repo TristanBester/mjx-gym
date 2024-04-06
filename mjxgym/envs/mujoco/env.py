@@ -1,14 +1,9 @@
 import chex
 import jax
-import jax.numpy as jnp
-import matplotlib.pyplot as plt
-import mujoco
-from jax_tqdm import loop_tqdm
 from mujoco import mjx
 
 from mjxgym.envs.mujoco.constants import ACTIONS
 from mjxgym.envs.mujoco.generator import GeneratorReacher2D
-from mjxgym.envs.mujoco.renderer import Reacher2DRenderer
 from mjxgym.envs.mujoco.reward import DenseRewardFunction
 from mjxgym.envs.mujoco.types import Observation, State
 from mjxgym.interfaces.environment import Environment
@@ -84,41 +79,3 @@ class Reacher2D(Environment[State, Observation]):
             discount=self.discount,
         )
         return next_state, next_timestep
-
-
-if __name__ == "__main__":
-    # mj_model_one = mujoco.MjModel.from_xml_path("assets/reacher.xml")
-    # mj_model_two = mujoco.MjModel.from_xml_path("assets/reacher.xml")
-
-    # mj_data = mujoco.MjData(mj_model_one)
-    # renderer = mujoco.Renderer(mj_model_two)
-
-    # mujoco.mj_resetData(mj_model_one, mj_data)
-    # mjx_data = mjx.put_data(mj_model_one, mj_data)
-    # mjx_model = mjx.put_model(mj_model_one)
-
-    # mjx_data = mjx.step(mjx_model, mjx_data)
-
-    # mj_data = mjx.get_data(mj_model_two, mjx_data)
-    # renderer.update_scene(data=mj_data)
-    # pixels = renderer.render()
-    # plt.imshow(pixels)
-    # plt.show()
-
-    #########################################
-
-    env = Reacher2D()
-    state, timestep = env.reset(jax.random.PRNGKey(0))
-
-    @loop_tqdm(10_000_000)
-    def fori_body(i, val):
-        key, state, timestep = val
-
-        key, subkey = jax.random.split(key)
-        action = jax.random.randint(subkey, (), 0, 4)
-        state, timestep = env.step(state, action)
-        return key, state, timestep
-
-    key, state, timestep = jax.lax.fori_loop(
-        0, 10_000_000, fori_body, (jax.random.PRNGKey(0), state, timestep)
-    )

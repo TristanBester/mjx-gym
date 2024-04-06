@@ -1,6 +1,5 @@
 import chex
 import jax.numpy as jnp
-import numpy as np
 
 from mjxgym.envs.mujoco.constants import EE_SITE_IDX, GOAL_SITE_IDX
 from mjxgym.envs.mujoco.types import State

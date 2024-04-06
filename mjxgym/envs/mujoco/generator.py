@@ -2,7 +2,6 @@ import chex
 import jax
 import jax.numpy as jnp
 import mujoco
-from chex._src.pytypes import PRNGKey
 from mujoco import mjx
 
 from mjxgym.envs.mujoco.constants import XML_PATH
